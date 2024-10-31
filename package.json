@@ -18,20 +18,25 @@
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.0",
+    "@remotion/captions": "^4.0.225",
     "@remotion/cli": "^4.0.0",
     "@remotion/google-fonts": "^4.0.0",
+    "@remotion/install-whisper-cpp": "^4.0.225",
     "@remotion/lambda": "^4.0.0",
     "@remotion/paths": "^4.0.0",
     "@remotion/player": "^4.0.0",
     "@remotion/shapes": "^4.0.0",
     "@remotion/tailwind": "^4.0.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/ssr": "^0.5.1",
+    "@supabase/supabase-js": "^2.46.1",
     "clsx": "2.1.1",
     "next": "14.2.13",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "remotion": "^4.0.0",
     "tailwind-merge": "2.5.2",
-    "zod": "3.22.3"
+    "zod": "^3.22.3"
   },
   "devDependencies": {
     "@remotion/eslint-config": "^4.0.0",
