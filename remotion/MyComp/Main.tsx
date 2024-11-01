@@ -33,7 +33,7 @@ export const Main = ({ title }: z.infer<typeof CompositionProps>) => {
   });
 
   return (
-    <AbsoluteFill className="bg-white">
+    <AbsoluteFill className="bg-black">
       <Sequence durationInFrames={transitionStart + transitionDuration}>
         <Rings outProgress={logoOut}></Rings>
         <AbsoluteFill className="justify-center items-center">

@@ -16,8 +16,7 @@ import { z } from "zod";
 import { RenderControls } from "../components/RenderControls";
 import { Tips } from "../components/Tips";
 import { Spacing } from "../components/Spacing";
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/client';
 import { redirect } from 'next/navigation';
 
 export default async function Home() {
@@ -29,8 +28,7 @@ export default async function Home() {
     };
   }, [text]);
 
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClient();
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
