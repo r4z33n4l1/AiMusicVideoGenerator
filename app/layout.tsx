@@ -1,10 +1,12 @@
-import "../styles/global.css";
-import { Metadata } from "next";
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "Remotion and Next.js",
-  description: "Remotion and Next.js",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  title: 'AI Music Video Generator',
+  description: 'Create amazing music videos with AI',
 };
 
 export default function RootLayout({
@@ -14,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-background">{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
