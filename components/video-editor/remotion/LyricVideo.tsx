@@ -8,10 +8,13 @@ export interface LyricVideoProps {
     startTime: number;
     endTime: number;
     text: string;
-    timestamp: string;
     zIndex?: number;
   }[];
-  orientation: 'landscape' | 'portrait';
+  orientation: 'landscape';
+  audioStartTime: number;
+  audioEndTime: number;
+  loopAudio: boolean;
+  totalDuration: number;
 }
 
 // Create the component without React.FC
@@ -19,59 +22,35 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   audioPath,
   imagePath,
   lyrics,
-  orientation,
+  audioStartTime,
+  audioEndTime,
+  loopAudio,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const timeInSeconds = frame / fps;
 
-  const getCurrentLyrics = () => {
-    return lyrics.filter(
-      (lyric) => {
-        const startTime = lyric.startTime || 0;
-        const endTime = lyric.endTime || (startTime + 4);
-        return timeInSeconds >= startTime && timeInSeconds < endTime;
-      }
-    ).sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0)); // Sort by zIndex for layering
-  };
+  // Get currently visible lyrics
+  const visibleLyrics = lyrics
+    .filter(lyric => timeInSeconds >= lyric.startTime && timeInSeconds < lyric.endTime)
+    .sort((a, b) => a.startTime - b.startTime);
 
-  const currentLyrics = getCurrentLyrics();
+  const containerOffset = visibleLyrics.length > 1 
+    ? -(((visibleLyrics.length - 1) * 80) / 2)
+    : 0;
 
-  // Animation helpers
-  const getWordAnimation = (word: string, wordIndex: number, startTime: number, endTime: number) => {
-    const delay = wordIndex * 0.2;
-    const wordStart = startTime + delay;
-    
-    const progress = spring({
-      frame: frame - wordStart * fps,
-      fps,
-      config: {
-        damping: 8,
-        stiffness: 200,
-        mass: 0.5,
-      },
-    });
-
-    return {
-      opacity: progress,
-      scale: interpolate(
-        progress,
-        [0, 0.5, 0.8, 1],
-        [3, 0.8, 1.2, 1],
-        { extrapolateRight: 'clamp' }
-      ),
-      z: interpolate(
-        progress,
-        [0, 1],
-        [500, 0],
-        { extrapolateRight: 'clamp' }
-      ),
-    };
-  };
+  // Audio timing calculations
+  const audioStartFrame = Math.max(0, frame - (audioStartTime * fps));
+  const audioEndFrame = frame + ((audioEndTime - audioStartTime) * fps);
 
   return (
     <AbsoluteFill>
-      <Audio src={audioPath} />
+      <Audio
+        src={audioPath}
+        startFrom={audioStartFrame}
+        endAt={audioEndFrame}
+        loop={loopAudio}
+      />
       <Img
         src={imagePath}
         style={{
@@ -82,7 +61,6 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
         }}
       />
 
-      {/* Container for all lyrics */}
       <div
         style={{
           position: 'absolute',
@@ -91,71 +69,77 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: currentLyrics.length > 1 ? 'center' : 'center',
-          gap: '60px', // Space between lyrics
+          justifyContent: 'center',
+          transform: `translateY(${containerOffset}px)`,
         }}
       >
-        {currentLyrics.map((lyric, lyricIndex) => {
-          // Calculate vertical position based on number of lyrics
-          const totalLyrics = currentLyrics.length;
-          const verticalOffset = totalLyrics > 1 
-            ? (lyricIndex - (totalLyrics - 1) / 2) * 120 // 120px spacing between lines
-            : 0;
+        {visibleLyrics.map((lyric, index) => {
+          // Entry animation
+          const entryProgress = spring({
+            frame: frame - lyric.startTime * fps,
+            fps,
+            config: {
+              damping: 12,
+              stiffness: 200,
+              mass: 0.8,
+            },
+          });
 
+          // Exit animation - Fixed interpolation
+          const timeUntilExit = lyric.endTime - timeInSeconds;
+          const exitProgress = timeUntilExit < 0.5 
+            ? interpolate(timeUntilExit, [0, 0.5], [0, 1], { extrapolateRight: 'clamp' })
+            : 1;
+
+          // Word-by-word animation
+          const words = lyric.text.split(' ');
+          
           return (
             <div
-              key={`${lyric.timestamp}-${lyricIndex}`}
+              key={`${lyric.startTime}-${lyric.text}`}
               style={{
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                transform: `translateY(${verticalOffset}px)`,
-                transition: 'transform 0.5s ease',
+                marginBottom: index < visibleLyrics.length - 1 ? '80px' : 0,
+                opacity: Math.min(entryProgress, exitProgress),
+                transform: `translateY(${index * 80}px)`, // Fixed spacing between lyrics
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  padding: '0 50px',
-                }}
-              >
-                {lyric.text.split(' ').map((word, wordIndex) => {
-                  const wordAnim = getWordAnimation(
-                    word,
-                    wordIndex,
-                    lyric.startTime,
-                    lyric.endTime
-                  );
+              {words.map((word, wordIndex) => {
+                const wordDelay = wordIndex * 0.1;
+                const wordProgress = spring({
+                  frame: frame - (lyric.startTime + wordDelay) * fps,
+                  fps,
+                  config: {
+                    damping: 12,
+                    stiffness: 200,
+                    mass: 0.8,
+                  },
+                });
 
-                  return (
-                    <div
-                      key={`${word}-${wordIndex}`}
-                      style={{
-                        display: 'inline-block',
-                        opacity: wordAnim.opacity,
-                        transform: `scale(${wordAnim.scale}) translateZ(${wordAnim.z}px)`,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          fontFamily: 'Arial',
-                          fontSize: 60,
-                          fontWeight: 'bold',
-                          color: 'white',
-                          textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-                        }}
-                      >
-                        {word}
-                      </span>
-                      &nbsp;
-                    </div>
-                  );
-                })}
-              </div>
+                return (
+                  <span
+                    key={wordIndex}
+                    style={{
+                      display: 'inline-block',
+                      color: 'white',
+                      fontSize: 60,
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                      padding: '0 10px',
+                      transform: `
+                        scale(${interpolate(wordProgress, [0, 1], [0.5, 1])})
+                        translateY(${interpolate(wordProgress, [0, 1], [50, 0])}px)
+                      `,
+                      opacity: wordProgress,
+                    }}
+                  >
+                    {word}
+                  </span>
+                );
+              })}
             </div>
           );
         })}

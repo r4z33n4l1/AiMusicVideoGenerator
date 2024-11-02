@@ -1,69 +1,60 @@
 'use client';
 
 import { Player } from '@remotion/player';
-import { LyricVideo, LyricVideoProps } from './remotion/LyricVideo';
-import { LyricLine } from '@/types';
+import { LyricVideo } from './remotion/LyricVideo';
 import { useMemo } from 'react';
 import { useRecoilValue } from 'recoil';
 import { videoSettingsState } from '@/context/VideoSettingsContext';
+import { DurationSelector } from './DurationSelector';
+import { SettingsDisplay } from './SettingsDisplay';
 
-interface VideoPreviewProps {
-  audioPath: string;
-  imagePath: string;
-  lyrics: LyricLine[];
-}
-
-export default function VideoPreview({ audioPath, imagePath, lyrics = [] }: VideoPreviewProps) {
+export default function VideoPreview() {
   const settings = useRecoilValue(videoSettingsState);
+  const FPS = 60
+  const inputProps = {
+    audioPath: settings.audioPath || '',
+    imagePath: settings.imagePath || '',
+    lyrics: settings.lyricTimings,
+    orientation: 'landscape' as const,
+    audioStartTime: settings.audioStartTime,
+    audioEndTime: settings.audioEndTime,
+    loopAudio: settings.loopAudio,
+    totalDuration: settings.totalDuration
+  };
 
-  const processedLyrics = useMemo(() => {
-    if (!lyrics?.length) return [];
-    
-    return lyrics.map(lyric => {
-      const [minutes, seconds] = lyric.timestamp.split(':').map(Number);
-      return {
-        ...lyric,
-        startTime: minutes * 60 + seconds,
-      };
-    });
-  }, [lyrics]);
-
-  if (!audioPath || !imagePath) {
+  if (!settings.audioPath || !settings.imagePath) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Video Preview</h2>
-        <div className="aspect-video bg-gray-100 flex items-center justify-center text-gray-500">
-          Select audio and image to preview
+      <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+        <h2 className="text-xl font-semibold mb-4 text-white">Video Preview</h2>
+        <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center text-gray-400">
+          Please select audio and image files
         </div>
       </div>
     );
   }
 
-  const inputProps: LyricVideoProps = {
-    audioPath,
-    imagePath,
-    lyrics: processedLyrics,
-    orientation: 'landscape' as const,
-  };
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Video Preview</h2>
-      <div className="aspect-video">
-        <Player
-          component={LyricVideo}
-          durationInFrames={settings.totalDuration * 30}
-          compositionWidth={1920}
-          compositionHeight={1080}
-          fps={30}
-          controls
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
-          inputProps={inputProps}
-        />
+    <div className="space-y-4">
+      <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+        <h2 className="text-xl font-semibold mb-4 text-white">Video Preview</h2>
+        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+          <Player
+            component={LyricVideo}
+            durationInFrames={Math.floor(settings.totalDuration * FPS)}
+            compositionWidth={1920}
+            compositionHeight={1080}
+            fps={FPS}
+            controls
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+            inputProps={inputProps}
+          />
+        </div>
       </div>
+      <DurationSelector />
+      <SettingsDisplay />
     </div>
   );
 } 
